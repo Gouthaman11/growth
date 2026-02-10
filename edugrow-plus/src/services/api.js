@@ -1,5 +1,6 @@
 // API service for communicating with PostgreSQL backend
-const API_BASE_URL = 'http://localhost:5000/api'
+// Use environment variable for API URL, fallback to relative path for Vercel
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 // Helper to get auth header
 const getAuthHeader = () => {
