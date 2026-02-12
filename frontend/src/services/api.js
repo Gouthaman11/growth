@@ -45,6 +45,18 @@ export const authAPI = {
             headers: getAuthHeader()
         })
         return handleResponse(response)
+    },
+
+    async updateProfile(profileData) {
+        const response = await fetch(`${API_BASE_URL}/auth/update-profile`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeader()
+            },
+            body: JSON.stringify(profileData)
+        })
+        return handleResponse(response)
     }
 }
 

@@ -31,16 +31,27 @@ module.exports = async function handler(req, res) {
         
         // Get user from database
         const result = await pool.query(
-            'SELECT id, email, role, "fullName", "rollNumber", year, department, avatar, "isActive" FROM "Users" WHERE id = $1',
+            `SELECT 
+                id, email, role, "fullName", "rollNumber", year, department, 
+                avatar, "employeeId", designation, specialization, "codingProfiles", 
+                academics, "bipCredentials", "growthScore", "assignedStudents", "isActive" 
+            FROM "Users" WHERE id = $1`,
             [decoded.id]
         )
 
         if (result.rows.length > 0) {
             const user = result.rows[0]
-            res.json({
+            // Parse JSON fields
+            const parsedUser = {
                 ...user,
-                uid: user.id // Compatibility
-            })
+                uid: user.id, // Compatibility
+                codingProfiles: typeof user.codingProfiles === 'string' ? JSON.parse(user.codingProfiles || '{}') : user.codingProfiles,
+                academics: typeof user.academics === 'string' ? JSON.parse(user.academics || '{}') : user.academics,
+                bipCredentials: typeof user.bipCredentials === 'string' ? JSON.parse(user.bipCredentials || '{}') : user.bipCredentials,
+                assignedStudents: typeof user.assignedStudents === 'string' ? JSON.parse(user.assignedStudents || '[]') : user.assignedStudents
+            }
+            
+            res.json(parsedUser)
         } else {
             res.status(404).json({ error: 'User not found' })
         }

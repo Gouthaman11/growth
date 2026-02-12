@@ -24,7 +24,25 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-        const { email, password, role, fullName, ...otherData } = req.body
+        const { 
+            email, 
+            password, 
+            role, 
+            fullName,
+            rollNumber,
+            year,
+            department,
+            avatar,
+            employeeId,
+            designation,
+            specialization,
+            github,
+            leetcode,
+            hackerrank,
+            linkedin,
+            portfolio,
+            ...otherData 
+        } = req.body
 
         if (!email || !password) {
             return res.status(400).json({ error: 'Email and password are required' })
@@ -44,11 +62,65 @@ module.exports = async function handler(req, res) {
         const salt = await bcrypt.genSalt(10)
         const hashedPassword = await bcrypt.hash(password, salt)
 
-        // Create user
+        // Prepare coding profiles JSON
+        const codingProfiles = {
+            github: github || '',
+            leetcode: leetcode || '',
+            hackerrank: hackerrank || '',
+            linkedin: linkedin || '',
+            portfolio: portfolio || ''
+        }
+
+        // Prepare academics JSON for students
+        const academics = {
+            cgpa: 0,
+            sgpa: 0,
+            attendance: 0,
+            totalCredits: 0,
+            earnedCredits: 0,
+            currentSemester: 1,
+            semesters: [],
+            lastSynced: null
+        }
+
+        // Prepare BIP credentials JSON
+        const bipCredentials = {
+            email: '',
+            password: '',
+            lastSync: null,
+            syncStatus: 'never'
+        }
+
+        // Create user with all profile fields
         const userId = uuidv4()
         const result = await pool.query(
-            'INSERT INTO "Users" (id, email, password, role, "fullName", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING *',
-            [userId, email, hashedPassword, role || 'student', fullName || '']
+            `INSERT INTO "Users" (
+                id, email, password, role, "fullName", "rollNumber", year, department, 
+                avatar, "employeeId", designation, specialization, "codingProfiles", 
+                academics, "bipCredentials", "growthScore", "assignedStudents", "isActive", 
+                "createdAt", "updatedAt"
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW()) 
+            RETURNING *`,
+            [
+                userId, 
+                email, 
+                hashedPassword, 
+                role || 'student', 
+                fullName || '',
+                rollNumber || null,
+                year || null,
+                department || null,
+                avatar || null,
+                employeeId || null,
+                designation || null,
+                specialization || null,
+                JSON.stringify(codingProfiles),
+                JSON.stringify(academics),
+                JSON.stringify(bipCredentials),
+                0, // growthScore
+                JSON.stringify([]), // assignedStudents
+                true // isActive
+            ]
         )
 
         if (result.rows.length > 0) {
@@ -59,6 +131,10 @@ module.exports = async function handler(req, res) {
                 email: user.email,
                 role: user.role,
                 fullName: user.fullName || user.full_name,
+                rollNumber: user.rollNumber,
+                year: user.year,
+                department: user.department,
+                codingProfiles: typeof user.codingProfiles === 'string' ? JSON.parse(user.codingProfiles) : user.codingProfiles,
                 token: generateToken(user.id)
             })
         } else {
