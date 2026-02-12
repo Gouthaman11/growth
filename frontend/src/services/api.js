@@ -57,6 +57,18 @@ export const authAPI = {
             body: JSON.stringify(profileData)
         })
         return handleResponse(response)
+    },
+
+    async updateProfileLinks(linkData) {
+        const response = await fetch(`${API_BASE_URL}/auth/update-profile-links`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeader()
+            },
+            body: JSON.stringify(linkData)
+        })
+        return handleResponse(response)
     }
 }
 

@@ -1,14 +1,6 @@
 import express from 'express'
 import cors from 'cors'
-import dotenv from 'dotenv'
-import path from 'path'
-import { fileURLToPath } from 'url'
 import bcrypt from 'bcryptjs'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
-dotenv.config({ path: path.join(__dirname, '.env') })
 
 import { connectDB } from './config/db.js'
 
@@ -237,10 +229,10 @@ const startServer = async () => {
         console.warn('⚠️ Database connection failed, starting in limited mode')
         console.warn('   Some features requiring database will not work')
     }
-    
-    app.listen(PORT, () => {
-        console.log(`🚀 Server running on port ${PORT}`)
-    })
 }
 
+// Initialize database connection
 startServer()
+
+// Export app for serverless or testing
+export default app
