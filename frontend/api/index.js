@@ -2,12 +2,12 @@ import express from "express"
 import serverless from "serverless-http"
 import cors from "cors"
 
-import authRoutes from "./auth/authRoutes.js"
-import userRoutes from "./users/userRoutes.js"
-import progressRoutes from "./progress/progressRoutes.js"
-import academicRoutes from "./academics/academicRoutes.js"
-import goalRoutes from "./goals/goalRoutes.js"
-import codingRoutes from "./coding-data/codingRoutes.js"
+import userRoutes from "./_routes/users/index.js"
+import authRoutes from "./_routes/auth/index.js"
+import progressRoutes from "./_routes/progress/index.js"
+import academicRoutes from "./_routes/academics/index.js"
+import goalRoutes from "./_routes/goals/index.js"
+import codingRoutes from "./_routes/coding-data/index.js"
 
 const app = express()
 
