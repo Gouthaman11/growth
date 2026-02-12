@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
-const { initDB } = require('../_config/db.js')
-const User = require('../_models/User.js')
+const pool = require('../_config/db.js')
+const { v4: uuidv4 } = require('uuid')
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET || 'edugrow_plus_secret_key_2026', {
@@ -24,19 +24,19 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-        // Initialize database
-        await initDB()
-        
-        const { email, password, role, ...otherData } = req.body
+        const { email, password, role, fullName, ...otherData } = req.body
 
         if (!email || !password) {
             return res.status(400).json({ error: 'Email and password are required' })
         }
 
         // Check if user exists
-        const userExists = await User.findOne({ where: { email } })
+        const userCheck = await pool.query(
+            'SELECT id FROM "Users" WHERE email = $1',
+            [email]
+        )
 
-        if (userExists) {
+        if (userCheck.rows.length > 0) {
             return res.status(400).json({ error: 'Email is already in use. Please use a different email.' })
         }
 
@@ -45,24 +45,24 @@ module.exports = async function handler(req, res) {
         const hashedPassword = await bcrypt.hash(password, salt)
 
         // Create user
-        const user = await User.create({
-            email,
-            password: hashedPassword,
-            role: role || 'student',
-            ...otherData
-        })
+        const userId = uuidv4()
+        const result = await pool.query(
+            'INSERT INTO "Users" (id, email, password, role, "fullName", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING *',
+            [userId, email, hashedPassword, role || 'student', fullName || '']
+        )
 
-        if (user) {
+        if (result.rows.length > 0) {
+            const user = result.rows[0]
             res.status(201).json({
                 uid: user.id,
                 id: user.id,
                 email: user.email,
                 role: user.role,
-                fullName: user.fullName,
+                fullName: user.fullName || user.full_name,
                 token: generateToken(user.id)
             })
         } else {
-            res.status(400).json({ error: 'Invalid user data' })
+            res.status(400).json({ error: 'Failed to create user' })
         }
     } catch (error) {
         console.error('Register Error:', error)

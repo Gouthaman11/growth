@@ -1,7 +1,6 @@
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
-const { initDB } = require('../_config/db.js')
-const User = require('../_models/User.js')
+const pool = require('../_config/db.js')
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET || 'edugrow_plus_secret_key_2026', {
@@ -24,25 +23,32 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-        // Initialize database
-        await initDB()
-        
         const { email, password } = req.body
 
         if (!email || !password) {
             return res.status(400).json({ error: 'Email and password are required' })
         }
 
-        // Check for user email
-        const user = await User.findOne({ where: { email } })
+        // Query user by email
+        const result = await pool.query(
+            'SELECT * FROM "Users" WHERE email = $1',
+            [email]
+        )
 
-        if (user && (await bcrypt.compare(password, user.password))) {
+        if (result.rows.length === 0) {
+            return res.status(401).json({ error: 'Invalid email or password' })
+        }
+
+        const user = result.rows[0]
+
+        // Check password
+        if (await bcrypt.compare(password, user.password)) {
             res.json({
                 uid: user.id,
                 id: user.id,
                 email: user.email,
                 role: user.role,
-                fullName: user.fullName,
+                fullName: user.fullName || user.full_name,
                 token: generateToken(user.id)
             })
         } else {

@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken')
-const { initDB } = require('../_config/db.js')
-const User = require('../_models/User.js')
+const pool = require('../_config/db.js')
 
 const verifyToken = (token) => {
     return jwt.verify(token, process.env.JWT_SECRET || 'edugrow_plus_secret_key_2026')
@@ -30,16 +29,16 @@ module.exports = async function handler(req, res) {
         const token = authHeader.substring(7) // Remove "Bearer " prefix
         const decoded = verifyToken(token)
         
-        // Initialize database
-        await initDB()
-        
-        const user = await User.findByPk(decoded.id, {
-            attributes: { exclude: ['password'] }
-        })
+        // Get user from database
+        const result = await pool.query(
+            'SELECT id, email, role, "fullName", "rollNumber", year, department, avatar, "isActive" FROM "Users" WHERE id = $1',
+            [decoded.id]
+        )
 
-        if (user) {
+        if (result.rows.length > 0) {
+            const user = result.rows[0]
             res.json({
-                ...user.toJSON(),
+                ...user,
                 uid: user.id // Compatibility
             })
         } else {
