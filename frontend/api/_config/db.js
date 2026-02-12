@@ -1,5 +1,4 @@
-import { Sequelize } from 'sequelize'
-import User from '../_models/User.js'
+const { Sequelize } = require('sequelize')
 
 const sequelize = new Sequelize(
     process.env.DATABASE_URL || process.env.DB_NAME || 'postgres',
@@ -27,9 +26,11 @@ const sequelize = new Sequelize(
 )
 
 // Initialize database connection for serverless
-export const initDB = async () => {
+const initDB = async () => {
     try {
         await sequelize.authenticate()
+        // Import User model after sequelize is ready
+        const User = require('../_models/User.js')
         await sequelize.sync({ alter: true })
         return sequelize
     } catch (error) {
@@ -38,5 +39,4 @@ export const initDB = async () => {
     }
 }
 
-export { sequelize }
-export default sequelize
+module.exports = { sequelize, initDB }

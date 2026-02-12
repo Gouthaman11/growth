@@ -1,7 +1,7 @@
-import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
-import { initDB } from '../_config/db.js'
-import User from '../_models/User.js'
+const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
+const { initDB } = require('../_config/db.js')
+const User = require('../_models/User.js')
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET || 'edugrow_plus_secret_key_2026', {
@@ -9,7 +9,7 @@ const generateToken = (id) => {
     })
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
