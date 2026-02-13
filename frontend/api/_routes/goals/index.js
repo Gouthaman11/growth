@@ -1,4 +1,5 @@
 import express from 'express'
+import jwt from 'jsonwebtoken'
 import pool from '../_config/db.js'
 
 const router = express.Router()
@@ -9,9 +10,8 @@ const verifyToken = (req, res, next) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'No token provided' })
     }
-    
+
     try {
-        const jwt = require('jsonwebtoken')
         const token = authHeader.substring(7)
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'edugrow_plus_secret_key_2026')
         req.user = decoded
@@ -49,7 +49,7 @@ router.get('/', verifyToken, async (req, res) => {
             `SELECT * FROM "Goals" WHERE ${whereClause} ORDER BY deadline ASC`,
             params
         )
-        
+
         res.json(result.rows)
     } catch (error) {
         res.status(500).json({ error: error.message })
@@ -63,11 +63,11 @@ router.get('/:id', verifyToken, async (req, res) => {
             'SELECT * FROM "Goals" WHERE id = $1',
             [req.params.id]
         )
-        
+
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Goal not found' })
         }
-        
+
         res.json(result.rows[0])
     } catch (error) {
         res.status(500).json({ error: error.message })
@@ -81,7 +81,7 @@ router.get('/student/:studentId', verifyToken, async (req, res) => {
             'SELECT * FROM "Goals" WHERE "studentId" = $1 ORDER BY deadline ASC',
             [req.params.studentId]
         )
-        
+
         res.json(result.rows)
     } catch (error) {
         res.status(500).json({ error: error.message })
@@ -97,7 +97,7 @@ router.get('/student/:studentId/active', verifyToken, async (req, res) => {
              ORDER BY deadline ASC`,
             [req.params.studentId]
         )
-        
+
         res.json(result.rows)
     } catch (error) {
         res.status(500).json({ error: error.message })
@@ -108,14 +108,14 @@ router.get('/student/:studentId/active', verifyToken, async (req, res) => {
 router.post('/', verifyToken, async (req, res) => {
     try {
         const { studentId, title, description, category, deadline, status } = req.body
-        
+
         const result = await pool.query(
             `INSERT INTO "Goals" ("studentId", title, description, category, deadline, status, "createdAt", "updatedAt")
              VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
              RETURNING *`,
             [studentId, title, description, category, deadline, status || 'not-started']
         )
-        
+
         res.status(201).json(result.rows[0])
     } catch (error) {
         res.status(400).json({ error: error.message })
@@ -126,7 +126,7 @@ router.post('/', verifyToken, async (req, res) => {
 router.patch('/:id', verifyToken, async (req, res) => {
     try {
         const { title, description, category, deadline, status, progress } = req.body
-        
+
         const updateFields = []
         const updateValues = []
         let paramIndex = 1
@@ -167,11 +167,11 @@ router.patch('/:id', verifyToken, async (req, res) => {
             `UPDATE "Goals" SET ${updateFields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
             updateValues
         )
-        
+
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Goal not found' })
         }
-        
+
         res.json(result.rows[0])
     } catch (error) {
         res.status(400).json({ error: error.message })

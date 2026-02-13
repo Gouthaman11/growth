@@ -1,4 +1,5 @@
 import express from 'express'
+import jwt from 'jsonwebtoken'
 import pool from '../_config/db.js'
 
 const router = express.Router()
@@ -9,9 +10,8 @@ const verifyToken = (req, res, next) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'No token provided' })
     }
-    
+
     try {
-        const jwt = require('jsonwebtoken')
         const token = authHeader.substring(7)
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'edugrow_plus_secret_key_2026')
         req.user = decoded
@@ -34,9 +34,9 @@ router.get('/:userId/bip-status', verifyToken, async (req, res) => {
         }
 
         const user = result.rows[0]
-        const academics = typeof user.academics === 'string' ? 
+        const academics = typeof user.academics === 'string' ?
             JSON.parse(user.academics || '{}') : user.academics || {}
-        
+
         res.json({
             success: true,
             portalUrl: 'https://bip.bitsathy.ac.in',
@@ -63,7 +63,7 @@ router.get('/:userId/data', verifyToken, async (req, res) => {
         }
 
         const user = result.rows[0]
-        const academics = typeof user.academics === 'string' ? 
+        const academics = typeof user.academics === 'string' ?
             JSON.parse(user.academics || '{}') : user.academics || {}
 
         const defaultAcademics = {
@@ -91,7 +91,7 @@ router.get('/:userId/data', verifyToken, async (req, res) => {
 router.put('/:userId/data', verifyToken, async (req, res) => {
     try {
         const { cgpa, sgpa, attendance, currentSemester, semesters, totalCredits, earnedCredits } = req.body
-        
+
         const currentResult = await pool.query(
             'SELECT academics FROM "Users" WHERE id = $1',
             [req.params.userId]
@@ -101,8 +101,8 @@ router.put('/:userId/data', verifyToken, async (req, res) => {
             return res.status(404).json({ success: false, error: 'User not found' })
         }
 
-        const currentAcademics = typeof currentResult.rows[0].academics === 'string' ? 
-            JSON.parse(currentResult.rows[0].academics || '{}') : 
+        const currentAcademics = typeof currentResult.rows[0].academics === 'string' ?
+            JSON.parse(currentResult.rows[0].academics || '{}') :
             currentResult.rows[0].academics || {}
 
         const updatedAcademics = {

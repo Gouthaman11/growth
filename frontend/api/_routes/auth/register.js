@@ -1,7 +1,7 @@
-const bcrypt = require('bcryptjs')
-const jwt = require('jsonwebtoken')
-const pool = require('../_config/db.js')
-const { v4: uuidv4 } = require('uuid')
+import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
+import pool from '../../_config/db.js'
+import { v4 as uuidv4 } from 'uuid'
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET || 'edugrow_plus_secret_key_2026', {
@@ -9,25 +9,25 @@ const generateToken = (id) => {
     })
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-    
+
     if (req.method === 'OPTIONS') {
         return res.status(200).end()
     }
-    
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' })
     }
 
     try {
-        const { 
-            email, 
-            password, 
-            role, 
+        const {
+            email,
+            password,
+            role,
             fullName,
             rollNumber,
             year,
@@ -41,7 +41,7 @@ module.exports = async function handler(req, res) {
             hackerrank,
             linkedin,
             portfolio,
-            ...otherData 
+            ...otherData
         } = req.body
 
         if (!email || !password) {
@@ -102,10 +102,10 @@ module.exports = async function handler(req, res) {
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW()) 
             RETURNING *`,
             [
-                userId, 
-                email, 
-                hashedPassword, 
-                role || 'student', 
+                userId,
+                email,
+                hashedPassword,
+                role || 'student',
                 fullName || '',
                 rollNumber || null,
                 year || null,

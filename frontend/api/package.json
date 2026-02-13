@@ -1,8 +1,9 @@
 {
   "name": "edugrow-api",
   "version": "1.0.0",
+  "type": "module",
   "description": "EduGrow+ Vercel API Functions",
-  "main": "health.js",
+  "main": "index.js",
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "express": "^4.18.2",

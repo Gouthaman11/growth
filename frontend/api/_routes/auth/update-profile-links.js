@@ -1,20 +1,20 @@
-const jwt = require('jsonwebtoken')
-const pool = require('../../_config/db.js')
+import jwt from 'jsonwebtoken'
+import pool from '../../_config/db.js'
 
 const verifyToken = (token) => {
     return jwt.verify(token, process.env.JWT_SECRET || 'edugrow_plus_secret_key_2026')
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
     res.setHeader('Access-Control-Allow-Methods', 'PATCH, OPTIONS')
-    
+
     if (req.method === 'OPTIONS') {
         return res.status(200).end()
     }
-    
+
     if (req.method !== 'PATCH') {
         return res.status(405).json({ error: 'Method not allowed' })
     }
@@ -25,20 +25,20 @@ module.exports = async function handler(req, res) {
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return res.status(401).json({ error: 'No token provided' })
         }
-        
+
         const token = authHeader.substring(7)
         const decoded = verifyToken(token)
-        
+
         // Get user ID from URL parameter  
         const { id: userId } = req.query
-        
+
         if (!userId) {
             return res.status(400).json({ error: 'User ID is required' })
         }
 
         const {
             github,
-            leetcode, 
+            leetcode,
             hackerrank,
             linkedin,
             portfolio
@@ -54,8 +54,8 @@ module.exports = async function handler(req, res) {
             return res.status(404).json({ error: 'User not found' })
         }
 
-        const currentProfiles = typeof currentResult.rows[0].codingProfiles === 'string' 
-            ? JSON.parse(currentResult.rows[0].codingProfiles || '{}') 
+        const currentProfiles = typeof currentResult.rows[0].codingProfiles === 'string'
+            ? JSON.parse(currentResult.rows[0].codingProfiles || '{}')
             : currentResult.rows[0].codingProfiles || {}
 
         // Update only provided fields, keep existing ones
@@ -80,11 +80,11 @@ module.exports = async function handler(req, res) {
             const user = updateResult.rows[0]
             const parsedUser = {
                 ...user,
-                codingProfiles: typeof user.codingProfiles === 'string' 
-                    ? JSON.parse(user.codingProfiles || '{}') 
+                codingProfiles: typeof user.codingProfiles === 'string'
+                    ? JSON.parse(user.codingProfiles || '{}')
                     : user.codingProfiles
             }
-            
+
             res.json({
                 success: true,
                 message: 'Coding profiles updated successfully',
@@ -93,13 +93,13 @@ module.exports = async function handler(req, res) {
         } else {
             res.status(404).json({ error: 'User not found' })
         }
-        
+
     } catch (error) {
         console.error('Update Profile Links Error:', error)
         if (error.name === 'JsonWebTokenError') {
             res.status(401).json({ error: 'Invalid token' })
         } else {
-            res.status(500).json({ 
+            res.status(500).json({
                 error: error.message,
                 details: 'Failed to update profile links'
             })

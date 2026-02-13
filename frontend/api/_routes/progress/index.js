@@ -1,4 +1,5 @@
 import express from 'express'
+import jwt from 'jsonwebtoken'
 import pool from '../_config/db.js'
 
 const router = express.Router()
@@ -9,9 +10,8 @@ const verifyToken = (req, res, next) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'No token provided' })
     }
-    
+
     try {
-        const jwt = require('jsonwebtoken')
         const token = authHeader.substring(7)
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'edugrow_plus_secret_key_2026')
         req.user = decoded
@@ -27,14 +27,14 @@ router.get('/:studentId', verifyToken, async (req, res) => {
         const { days = 30 } = req.query
         const startDate = new Date()
         startDate.setDate(startDate.getDate() - parseInt(days))
-        
+
         const result = await pool.query(
             `SELECT * FROM "ProgressHistory" 
              WHERE "studentId" = $1 AND "recordDate" >= $2 
              ORDER BY "recordDate" ASC`,
             [req.params.studentId, startDate.toISOString()]
         )
-        
+
         res.json(result.rows)
     } catch (error) {
         res.status(500).json({ error: error.message })
@@ -47,7 +47,7 @@ router.get('/:studentId/weekly-comparison', verifyToken, async (req, res) => {
         const today = new Date()
         const lastWeek = new Date()
         lastWeek.setDate(today.getDate() - 7)
-        
+
         // Get latest record
         const currentResult = await pool.query(
             `SELECT * FROM "ProgressHistory" 
@@ -56,7 +56,7 @@ router.get('/:studentId/weekly-comparison', verifyToken, async (req, res) => {
              LIMIT 1`,
             [req.params.studentId]
         )
-        
+
         // Get record from a week ago
         const previousResult = await pool.query(
             `SELECT * FROM "ProgressHistory" 

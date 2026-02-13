@@ -1,4 +1,5 @@
 import express from 'express'
+import jwt from 'jsonwebtoken'
 import pool from '../_config/db.js'
 
 const router = express.Router()
@@ -9,9 +10,8 @@ const verifyToken = (req, res, next) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'No token provided' })
     }
-    
+
     try {
-        const jwt = require('jsonwebtoken')
         const token = authHeader.substring(7)
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'edugrow_plus_secret_key_2026')
         req.user = decoded
@@ -54,12 +54,12 @@ router.get('/', verifyToken, async (req, res) => {
 
         const users = result.rows.map(user => ({
             ...user,
-            codingProfiles: typeof user.codingProfiles === 'string' ? 
+            codingProfiles: typeof user.codingProfiles === 'string' ?
                 JSON.parse(user.codingProfiles || '{}') : user.codingProfiles,
             academics: typeof user.academics === 'string' ?
                 JSON.parse(user.academics || '{}') : user.academics
         }))
-        
+
         res.json(users)
     } catch (error) {
         console.error('Error fetching users:', error)
@@ -85,7 +85,7 @@ router.get('/mentor/:mentorId/students', verifyToken, async (req, res) => {
 
         const students = result.rows.map(user => ({
             ...user,
-            codingProfiles: typeof user.codingProfiles === 'string' ? 
+            codingProfiles: typeof user.codingProfiles === 'string' ?
                 JSON.parse(user.codingProfiles || '{}') : user.codingProfiles,
             academics: typeof user.academics === 'string' ?
                 JSON.parse(user.academics || '{}') : user.academics
@@ -116,16 +116,16 @@ router.get('/:id', verifyToken, async (req, res) => {
         const user = result.rows[0]
         const parsedUser = {
             ...user,
-            codingProfiles: typeof user.codingProfiles === 'string' ? 
+            codingProfiles: typeof user.codingProfiles === 'string' ?
                 JSON.parse(user.codingProfiles || '{}') : user.codingProfiles,
-            academics: typeof user.academics === 'string' ? 
+            academics: typeof user.academics === 'string' ?
                 JSON.parse(user.academics || '{}') : user.academics,
-            bipCredentials: typeof user.bipCredentials === 'string' ? 
+            bipCredentials: typeof user.bipCredentials === 'string' ?
                 JSON.parse(user.bipCredentials || '{}') : user.bipCredentials,
-            assignedStudents: typeof user.assignedStudents === 'string' ? 
+            assignedStudents: typeof user.assignedStudents === 'string' ?
                 JSON.parse(user.assignedStudents || '[]') : user.assignedStudents
         }
-        
+
         res.json(parsedUser)
     } catch (error) {
         res.status(500).json({ error: error.message })
@@ -144,8 +144,8 @@ router.patch('/:id/coding-profiles', verifyToken, async (req, res) => {
             return res.status(404).json({ error: 'User not found' })
         }
 
-        const currentProfiles = typeof currentResult.rows[0].codingProfiles === 'string' ? 
-            JSON.parse(currentResult.rows[0].codingProfiles || '{}') : 
+        const currentProfiles = typeof currentResult.rows[0].codingProfiles === 'string' ?
+            JSON.parse(currentResult.rows[0].codingProfiles || '{}') :
             currentResult.rows[0].codingProfiles || {}
 
         // Merge existing profiles with new ones
@@ -163,7 +163,7 @@ router.patch('/:id/coding-profiles', verifyToken, async (req, res) => {
             const user = updateResult.rows[0]
             const parsedUser = {
                 ...user,
-                codingProfiles: typeof user.codingProfiles === 'string' ? 
+                codingProfiles: typeof user.codingProfiles === 'string' ?
                     JSON.parse(user.codingProfiles || '{}') : user.codingProfiles
             }
             res.json(parsedUser)

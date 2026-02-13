@@ -1,4 +1,5 @@
 import express from 'express'
+import jwt from 'jsonwebtoken'
 import pool from '../_config/db.js'
 
 const router = express.Router()
@@ -9,9 +10,8 @@ const verifyToken = (req, res, next) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'No token provided' })
     }
-    
+
     try {
-        const jwt = require('jsonwebtoken')
         const token = authHeader.substring(7)
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'edugrow_plus_secret_key_2026')
         req.user = decoded
@@ -24,9 +24,9 @@ const verifyToken = (req, res, next) => {
 // Helper functions for fetching data from platforms
 const extractUsername = (input, platform) => {
     if (!input || input.trim() === '') return null
-    
+
     const cleanInput = input.trim()
-    
+
     try {
         if (platform === 'github') {
             const match = cleanInput.match(/github\.com\/([^\/\?]+)/i)
@@ -35,28 +35,28 @@ const extractUsername = (input, platform) => {
         if (platform === 'leetcode') {
             const matchU = cleanInput.match(/leetcode\.com\/u\/([^\/\?]+)/i)
             const matchDirect = cleanInput.match(/leetcode\.com\/([^\/\?]+)/i)
-            
+
             if (matchU) return matchU[1]
             if (matchDirect && !matchDirect[1].includes('/')) return matchDirect[1]
         }
         if (platform === 'hackerrank') {
             const matchProfile = cleanInput.match(/hackerrank\.com\/profile\/([^\/\?]+)/i)
             const matchDirect = cleanInput.match(/hackerrank\.com\/([^\/\?]+)/i)
-            
+
             if (matchProfile) return matchProfile[1]
             if (matchDirect && !matchDirect[1].includes('/')) return matchDirect[1]
         }
     } catch (e) {
         console.error('Error parsing URL:', e)
     }
-    
+
     return cleanInput
 }
 
 const fetchGitHubData = async (input) => {
     const username = extractUsername(input, 'github')
     if (!username) return null
-    
+
     try {
         const response = await fetch(`https://api.github.com/users/${username}`, {
             headers: {
@@ -64,11 +64,11 @@ const fetchGitHubData = async (input) => {
                 'User-Agent': 'EduGrow-Plus-App'
             }
         })
-        
+
         if (!response.ok) throw new Error(`GitHub user not found: ${username}`)
-        
+
         const userData = await response.json()
-        
+
         return {
             username: userData.login,
             name: userData.name,
@@ -90,10 +90,10 @@ const fetchGitHubData = async (input) => {
 const fetchLeetCodeData = async (input) => {
     const username = extractUsername(input, 'leetcode')
     if (!username) return null
-    
+
     try {
         const response = await fetch(`https://leetcode-stats-api.herokuapp.com/${username}`)
-        
+
         if (response.ok) {
             const data = await response.json()
             if (data.status === 'success' || data.totalSolved !== undefined) {
@@ -110,7 +110,7 @@ const fetchLeetCodeData = async (input) => {
                 }
             }
         }
-        
+
         throw new Error(`LeetCode data not found for: ${username}`)
     } catch (error) {
         console.error('LeetCode API Error:', error.message)
@@ -157,7 +157,7 @@ router.post('/:studentId/fetch/github', verifyToken, async (req, res) => {
         }
 
         const githubData = await fetchGitHubData(username)
-        
+
         // Update or create coding data
         const existingResult = await pool.query(
             'SELECT github FROM "CodingData" WHERE "studentId" = $1',
@@ -198,7 +198,7 @@ router.post('/:studentId/fetch/leetcode', verifyToken, async (req, res) => {
         }
 
         const leetcodeData = await fetchLeetCodeData(username)
-        
+
         // Update or create coding data
         const existingResult = await pool.query(
             'SELECT leetcode FROM "CodingData" WHERE "studentId" = $1',
