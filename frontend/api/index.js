@@ -1,6 +1,7 @@
 import express from "express";
 import serverless from "serverless-http";
 import cors from "cors";
+import { connectDB } from "../routes/_config/db.js";
 
 import authRoutes from "../routes/auth/index.js";
 import userRoutes from "../routes/users/index.js";
@@ -38,5 +39,11 @@ app.all("/api/*", (req, res) => {
   return res.status(404).json({ error: "Route not found", path: req.originalUrl });
 });
 
-// No app.listen() — Vercel handles that
-export default serverless(app);
+// ── Serverless handler with one-time DB connection ──────────────
+const handler = serverless(app);
+
+export default async function (req, res) {
+  // Connect once per cold start — cached, won't re-authenticate if already connected
+  await connectDB();
+  return handler(req, res);
+}
