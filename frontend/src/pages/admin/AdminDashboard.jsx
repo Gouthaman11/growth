@@ -55,9 +55,10 @@ export default function AdminDashboard() {
         setLoading(true)
         try {
             const users = await userAPI.getAllUsers()
+            console.log("Fetched users:", users)
             setAllUsers(users)
-            setStudents(users.filter(u => u.role === 'student'))
-            setMentors(users.filter(u => u.role === 'mentor'))
+            setStudents(users.filter(u => u.role?.toLowerCase() === 'student'))
+            setMentors(users.filter(u => u.role?.toLowerCase() === 'mentor'))
         } catch (error) {
             console.error('Error loading admin data:', error)
         }

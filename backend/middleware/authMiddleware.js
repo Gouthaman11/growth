@@ -33,10 +33,12 @@ const protect = async (req, res, next) => {
     }
 }
 
-// Middleware to check for specific roles
+// Middleware to check for specific roles (case-insensitive)
 const authorize = (...roles) => {
     return (req, res, next) => {
-        if (!roles.includes(req.user.role)) {
+        const userRole = req.user.role?.toLowerCase()
+        const allowedRoles = roles.map(r => r.toLowerCase())
+        if (!allowedRoles.includes(userRole)) {
             return res.status(403).json({
                 error: `User role ${req.user.role} is not authorized to access this route`
             })

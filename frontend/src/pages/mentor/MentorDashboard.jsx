@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { userAPI } from '../../services/api'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import StatCard from '../../components/ui/StatCard'
 import Card, { CardHeader, CardTitle, CardContent } from '../../components/ui/Card'
@@ -135,7 +136,20 @@ export default function MentorDashboard() {
     const loadStudents = async () => {
         setLoading(true)
         try {
-            const fetchedStudents = await getAllStudents()
+            // Try mentor-specific route first (students with mentorId), fall back to all students
+            let fetchedStudents = []
+            if (userData?.id) {
+                try {
+                    fetchedStudents = await userAPI.getMentorStudents(userData.id)
+                } catch (e) {
+                    console.warn('Mentor-specific route failed, falling back to getAllStudents:', e)
+                }
+            }
+            // Fallback: get all students if mentor route returned empty or failed
+            if (fetchedStudents.length === 0) {
+                fetchedStudents = await getAllStudents()
+            }
+            console.log("Fetched users:", fetchedStudents)
             setAllStudents(fetchedStudents)
         } catch (error) {
             console.error('Error loading students:', error)

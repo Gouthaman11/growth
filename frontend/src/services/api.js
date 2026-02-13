@@ -102,6 +102,13 @@ export const userAPI = {
         return handleResponse(response)
     },
 
+    async getMentorStudents(mentorId) {
+        const response = await fetch(`${API_BASE_URL}/users/mentor/${mentorId}/students`, {
+            headers: getAuthHeader()
+        })
+        return handleResponse(response)
+    },
+
     async getAssignedStudents(mentorId) {
         const response = await fetch(`${API_BASE_URL}/users/${mentorId}/assigned-students`, {
             headers: getAuthHeader()

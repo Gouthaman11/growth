@@ -90,6 +90,15 @@ const User = sequelize.define('User', {
         type: DataTypes.JSONB,
         defaultValue: []
     },
+    // Foreign key: which mentor is assigned to this student
+    mentorId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: 'Users',
+            key: 'id'
+        }
+    },
     // Common fields
     department: {
         type: DataTypes.STRING,

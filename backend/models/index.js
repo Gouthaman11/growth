@@ -7,6 +7,10 @@ import ProgressHistory from './ProgressHistory.js'
 
 // Define associations
 
+// Mentor <-> Student (via mentorId on student)
+User.hasMany(User, { foreignKey: 'mentorId', as: 'assignedStudentUsers' })
+User.belongsTo(User, { foreignKey: 'mentorId', as: 'mentorUser' })
+
 // User <-> Feedback
 User.hasMany(Feedback, { foreignKey: 'studentId', as: 'receivedFeedback' })
 User.hasMany(Feedback, { foreignKey: 'mentorId', as: 'givenFeedback' })

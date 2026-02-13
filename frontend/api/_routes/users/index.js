@@ -21,7 +21,7 @@ const verifyToken = (req, res, next) => {
     }
 }
 
-// Get all users (with optional role filter)
+// Get all users (with optional role filter) — case-insensitive for PostgreSQL
 router.get('/', verifyToken, async (req, res) => {
     try {
         const { role, department } = req.query
@@ -29,6 +29,7 @@ router.get('/', verifyToken, async (req, res) => {
         let params = []
         let paramIndex = 1
 
+        // Case-insensitive role comparison
         if (role) {
             whereClause += ` AND LOWER(role) = LOWER($${paramIndex})`
             params.push(role)
@@ -43,19 +44,56 @@ router.get('/', verifyToken, async (req, res) => {
         const result = await pool.query(
             `SELECT id, email, role, "fullName", "rollNumber", year, department, 
                     avatar, "employeeId", designation, specialization, "codingProfiles", 
+                    academics, "growthScore", "assignedStudents", "mentorId",
                     "isActive", "createdAt", "updatedAt" 
              FROM "Users" WHERE ${whereClause}`,
             params
         )
 
+        console.log("Fetched users:", { count: result.rows.length, role: role || 'ALL', department: department || 'ALL' })
+
         const users = result.rows.map(user => ({
             ...user,
             codingProfiles: typeof user.codingProfiles === 'string' ? 
-                JSON.parse(user.codingProfiles || '{}') : user.codingProfiles
+                JSON.parse(user.codingProfiles || '{}') : user.codingProfiles,
+            academics: typeof user.academics === 'string' ?
+                JSON.parse(user.academics || '{}') : user.academics
         }))
         
         res.json(users)
     } catch (error) {
+        console.error('Error fetching users:', error)
+        res.status(500).json({ error: error.message })
+    }
+})
+
+// Get students assigned to a specific mentor via mentor_id column
+router.get('/mentor/:mentorId/students', verifyToken, async (req, res) => {
+    try {
+        const { mentorId } = req.params
+
+        const result = await pool.query(
+            `SELECT id, email, role, "fullName", "rollNumber", year, department, 
+                    avatar, "codingProfiles", academics, "growthScore",
+                    "isActive", "createdAt", "updatedAt"
+             FROM "Users" 
+             WHERE LOWER(role) = 'student' AND "mentorId" = $1`,
+            [mentorId]
+        )
+
+        console.log("Fetched users:", result.rows)
+
+        const students = result.rows.map(user => ({
+            ...user,
+            codingProfiles: typeof user.codingProfiles === 'string' ? 
+                JSON.parse(user.codingProfiles || '{}') : user.codingProfiles,
+            academics: typeof user.academics === 'string' ?
+                JSON.parse(user.academics || '{}') : user.academics
+        }))
+
+        res.json(students)
+    } catch (error) {
+        console.error('Error fetching mentor students:', error)
         res.status(500).json({ error: error.message })
     }
 })
