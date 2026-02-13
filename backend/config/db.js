@@ -18,19 +18,19 @@ const sequelize = new Sequelize(
     }
 )
 
+let isConnected = false;
+
 const connectDB = async () => {
+    if (isConnected) return;
+
     try {
         await sequelize.authenticate()
-        console.log('✅ PostgreSQL Connected Successfully (AWS RDS)')
-        console.log(`   Host: ${sequelize.config.host}`)
-        console.log(`   Database: ${sequelize.config.database}`)
-        // Database tables should already exist in production
-        console.log('📊 Database Ready')
-        return true
+        console.log('DB connected')
+        isConnected = true
     } catch (error) {
-        console.error('❌ PostgreSQL Connection Error:', error.message)
-        console.error('   Please check your network connection and AWS RDS settings')
-        return false
+        console.error('DB connection failed:', error.message)
+        isConnected = false
+        throw error
     }
 }
 
