@@ -14,15 +14,15 @@ const app = express();
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
-// Debug: log every request
+// Debug: log every request with timestamp
 app.use((req, res, next) => {
-  console.log(`[API] ${req.method} ${req.originalUrl}`);
+  console.log(`[API] ${new Date().toISOString()} ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// Health check (replaces old api/health.js)
+// Health check
 app.get("/api/health", (req, res) => {
-  res.json({ status: "healthy", timestamp: new Date().toISOString(), service: "EduGrow+ API" });
+  return res.json({ status: "healthy", timestamp: new Date().toISOString(), service: "EduGrow+ API" });
 });
 
 app.use("/api/auth", authRoutes);
@@ -35,7 +35,7 @@ app.use("/api/coding-data", codingRoutes);
 // Catch-all 404 for unmatched /api routes
 app.all("/api/*", (req, res) => {
   console.log("[API] 404 — no route matched:", req.method, req.originalUrl);
-  res.status(404).json({ error: "Route not found", path: req.originalUrl });
+  return res.status(404).json({ error: "Route not found", path: req.originalUrl });
 });
 
 // No app.listen() — Vercel handles that

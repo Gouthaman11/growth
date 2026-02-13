@@ -9,17 +9,20 @@ const router = express.Router();
 // ─── POST /login ────────────────────────────────────────────────
 router.post("/login", async (req, res) => {
   try {
-    console.log("Route hit:", req.originalUrl);
+    console.log("[AUTH] POST /login hit");
     const { email, password } = req.body;
 
     if (!email || !password) {
+      console.log("[AUTH] Login rejected: missing email or password");
       return res.status(400).json({ error: "Email and password are required" });
     }
 
+    console.log("[AUTH] Querying user by email:", email);
     const result = await pool.query(
       'SELECT * FROM "Users" WHERE LOWER(email) = LOWER($1)',
       [email]
     );
+    console.log("[AUTH] Query complete, rows found:", result.rows.length);
 
     if (result.rows.length === 0) {
       return res.status(401).json({ error: "Invalid email or password" });
@@ -27,8 +30,12 @@ router.post("/login", async (req, res) => {
 
     const user = result.rows[0];
 
-    if (await bcrypt.compare(password, user.password)) {
-      res.json({
+    console.log("[AUTH] Comparing password...");
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    console.log("[AUTH] Password match:", passwordMatch);
+
+    if (passwordMatch) {
+      return res.json({
         uid: user.id,
         id: user.id,
         email: user.email,
@@ -37,18 +44,18 @@ router.post("/login", async (req, res) => {
         token: generateToken(user.id),
       });
     } else {
-      res.status(401).json({ error: "Invalid email or password" });
+      return res.status(401).json({ error: "Invalid email or password" });
     }
   } catch (error) {
-    console.error("Login Error:", error);
-    res.status(500).json({ error: error.message });
+    console.error("[AUTH] Login Error:", error.message);
+    return res.status(500).json({ error: error.message });
   }
 });
 
 // ─── POST /register ─────────────────────────────────────────────
 router.post("/register", async (req, res) => {
   try {
-    console.log("Route hit:", req.originalUrl);
+    console.log("[AUTH] POST /register hit");
     const {
       email,
       password,
@@ -74,10 +81,12 @@ router.post("/register", async (req, res) => {
         .json({ error: "Email and password are required" });
     }
 
+    console.log("[AUTH] Checking if user exists:", email);
     const userCheck = await pool.query(
       'SELECT id FROM "Users" WHERE LOWER(email) = LOWER($1)',
       [email]
     );
+    console.log("[AUTH] Existing user check complete, found:", userCheck.rows.length);
 
     if (userCheck.rows.length > 0) {
       return res
@@ -115,6 +124,7 @@ router.post("/register", async (req, res) => {
     };
 
     const userId = uuidv4();
+    console.log("[AUTH] Inserting new user:", userId);
     const result = await pool.query(
       `INSERT INTO "Users" (
         id, email, password, role, "fullName", "rollNumber", year, department,
@@ -144,10 +154,11 @@ router.post("/register", async (req, res) => {
         true,
       ]
     );
+    console.log("[AUTH] Insert complete, rows:", result.rows.length);
 
     if (result.rows.length > 0) {
       const user = result.rows[0];
-      res.status(201).json({
+      return res.status(201).json({
         uid: user.id,
         id: user.id,
         email: user.email,
@@ -163,19 +174,18 @@ router.post("/register", async (req, res) => {
         token: generateToken(user.id),
       });
     } else {
-      res.status(400).json({ error: "Failed to create user" });
+      return res.status(400).json({ error: "Failed to create user" });
     }
   } catch (error) {
-    console.error("Register Error:", error);
-    res.status(500).json({ error: error.message });
+    console.error("[AUTH] Register Error:", error.message);
+    return res.status(500).json({ error: error.message });
   }
 });
 
 // ─── GET /profile ───────────────────────────────────────────────
 router.get("/profile", verifyToken, async (req, res) => {
   try {
-    console.log("Route hit:", req.originalUrl);
-    console.log("User ID:", req.user?.id);
+    console.log("[AUTH] GET /profile hit, userId:", req.user?.id);
 
     const result = await pool.query(
       `SELECT
@@ -185,6 +195,7 @@ router.get("/profile", verifyToken, async (req, res) => {
       FROM "Users" WHERE id = $1`,
       [req.user.id]
     );
+    console.log("[AUTH] Profile query complete, rows:", result.rows.length);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "User not found" });
@@ -212,18 +223,17 @@ router.get("/profile", verifyToken, async (req, res) => {
           : user.assignedStudents,
     };
 
-    res.json(parsedUser);
+    return res.json(parsedUser);
   } catch (error) {
-    console.error("Profile Error:", error);
-    res.status(500).json({ error: error.message });
+    console.error("[AUTH] Profile Error:", error.message);
+    return res.status(500).json({ error: error.message });
   }
 });
 
 // ─── PUT /update-profile ────────────────────────────────────────
 router.put("/update-profile", verifyToken, async (req, res) => {
   try {
-    console.log("Route hit:", req.originalUrl);
-    console.log("User ID:", req.user?.id);
+    console.log("[AUTH] PUT /update-profile hit, userId:", req.user?.id);
 
     const userId = req.user.id; // Always from JWT
 
@@ -244,10 +254,12 @@ router.put("/update-profile", verifyToken, async (req, res) => {
     } = req.body;
 
     // Get current coding profiles
+    console.log("[AUTH] Fetching current user profiles...");
     const currentUser = await pool.query(
       'SELECT "codingProfiles" FROM "Users" WHERE id = $1',
       [userId]
     );
+    console.log("[AUTH] Current user query complete, rows:", currentUser.rows.length);
 
     if (currentUser.rows.length === 0) {
       return res.status(404).json({ error: "User not found" });
@@ -338,7 +350,9 @@ router.put("/update-profile", verifyToken, async (req, res) => {
                 academics, "bipCredentials", "growthScore", "assignedStudents", "isActive"
     `;
 
+    console.log("[AUTH] Running update query...");
     const result = await pool.query(updateQuery, updateValues);
+    console.log("[AUTH] Update complete, rows:", result.rows.length);
 
     if (result.rows.length > 0) {
       const user = result.rows[0];
@@ -363,30 +377,31 @@ router.put("/update-profile", verifyToken, async (req, res) => {
             : user.assignedStudents,
       };
 
-      res.json({ message: "Profile updated successfully", user: responseUser });
+      return res.json({ message: "Profile updated successfully", user: responseUser });
     } else {
-      res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: "User not found" });
     }
   } catch (error) {
-    console.error("Update Profile Error:", error);
-    res.status(500).json({ error: error.message });
+    console.error("[AUTH] Update Profile Error:", error.message);
+    return res.status(500).json({ error: error.message });
   }
 });
 
 // ─── PATCH /update-profile-links ────────────────────────────────
-// FIX: userId from JWT (req.user.id), NOT from req.query or req.body
 router.patch("/update-profile-links", verifyToken, async (req, res) => {
   try {
-    console.log("Route hit:", req.originalUrl);
+    console.log("[AUTH] PATCH /update-profile-links hit");
     const userId = req.user.id; // ← from JWT middleware
-    console.log("User ID:", userId);
+    console.log("[AUTH] User ID:", userId);
 
     const { github, leetcode, hackerrank, linkedin, portfolio } = req.body;
 
+    console.log("[AUTH] Fetching current coding profiles...");
     const currentResult = await pool.query(
       'SELECT "codingProfiles" FROM "Users" WHERE id = $1',
       [userId]
     );
+    console.log("[AUTH] Query complete, rows:", currentResult.rows.length);
 
     if (currentResult.rows.length === 0) {
       return res.status(404).json({ error: "User not found" });
@@ -411,6 +426,7 @@ router.patch("/update-profile-links", verifyToken, async (req, res) => {
         portfolio !== undefined ? portfolio : currentProfiles.portfolio || "",
     };
 
+    console.log("[AUTH] Updating coding profiles...");
     const updateResult = await pool.query(
       `UPDATE "Users"
        SET "codingProfiles" = $1, "updatedAt" = NOW()
@@ -418,6 +434,7 @@ router.patch("/update-profile-links", verifyToken, async (req, res) => {
        RETURNING id, email, role, "fullName", "codingProfiles"`,
       [JSON.stringify(updatedProfiles), userId]
     );
+    console.log("[AUTH] Update complete, rows:", updateResult.rows.length);
 
     if (updateResult.rows.length > 0) {
       const user = updateResult.rows[0];
@@ -429,17 +446,17 @@ router.patch("/update-profile-links", verifyToken, async (req, res) => {
             : user.codingProfiles,
       };
 
-      res.json({
+      return res.json({
         success: true,
         message: "Coding profiles updated successfully",
         user: parsedUser,
       });
     } else {
-      res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: "User not found" });
     }
   } catch (error) {
-    console.error("Update Profile Links Error:", error);
-    res.status(500).json({ error: error.message });
+    console.error("[AUTH] Update Profile Links Error:", error.message);
+    return res.status(500).json({ error: error.message });
   }
 });
 

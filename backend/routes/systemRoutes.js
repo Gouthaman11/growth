@@ -13,13 +13,11 @@ const router = express.Router()
 router.post('/reset-demo-data', async (req, res) => {
     try {
         console.log('🔄 Starting database reset...')
-        
-        // Sync database with force to recreate tables
-        await sequelize.sync({ alter: true })
-        console.log('✅ Database synced')
-        
+        // NOTE: sequelize.sync({ alter: true }) removed — tables already exist in production.
+        // Running sync during a request blocks the response and risks schema corruption.
+
         const salt = await bcrypt.genSalt(10)
-        
+
         // Demo Admin Account
         const adminEmail = 'admin@edugrow.com'
         await User.destroy({ where: { email: adminEmail } })
@@ -34,7 +32,7 @@ router.post('/reset-demo-data', async (req, res) => {
             address: 'Admin Office, Campus'
         })
         console.log('✅ Admin account created')
-        
+
         // Demo Mentor Account
         const mentorEmail = 'mentor@edugrow.com'
         await User.destroy({ where: { email: mentorEmail } })
@@ -50,7 +48,7 @@ router.post('/reset-demo-data', async (req, res) => {
             expertise: 'Data Structures, Algorithms, Web Development'
         })
         console.log('✅ Mentor account created')
-        
+
         // Demo Student Account
         const studentEmail = 'student@edugrow.com'
         await User.destroy({ where: { email: studentEmail } })
@@ -78,34 +76,34 @@ router.post('/reset-demo-data', async (req, res) => {
             growthScore: 75
         })
         console.log('✅ Student account created')
-        
+
         // Get the newly created student
         const demoStudent = await User.findOne({ where: { email: studentEmail } })
-        
+
         // Clear existing progress history and coding data for this student
         await ProgressHistory.destroy({ where: { studentId: demoStudent.id } })
         await CodingData.destroy({ where: { studentId: demoStudent.id } })
-        
+
         // Create 30 days of progress history for realistic charts
         const today = new Date()
         const progressRecords = []
-        
+
         // Start values (30 days ago)
         let leetcodeTotal = 45
         let githubRepos = 8
         let githubCommits = 120
         let growthScore = 50
-        
+
         for (let i = 29; i >= 0; i--) {
             const recordDate = new Date(today)
             recordDate.setDate(today.getDate() - i)
-            
+
             // Gradual growth over time (realistic progression)
             leetcodeTotal += Math.floor(Math.random() * 3)
             githubCommits += Math.floor(Math.random() * 5)
             if (Math.random() > 0.9) githubRepos += 1
             growthScore = Math.min(100, Math.round(50 + (30 - i) * 0.83))
-            
+
             progressRecords.push({
                 studentId: demoStudent.id,
                 recordDate: recordDate,
@@ -119,10 +117,10 @@ router.post('/reset-demo-data', async (req, res) => {
                 growthScore: growthScore
             })
         }
-        
+
         await ProgressHistory.bulkCreate(progressRecords)
         console.log('📊 Progress history seeded (30 days)')
-        
+
         // Seed CodingData for demo student
         await CodingData.create({
             studentId: demoStudent.id,
@@ -154,7 +152,7 @@ router.post('/reset-demo-data', async (req, res) => {
             lastSyncedAt: new Date()
         })
         console.log('💻 Coding data seeded')
-        
+
         res.json({
             success: true,
             message: 'Demo data reset successfully',
@@ -164,14 +162,14 @@ router.post('/reset-demo-data', async (req, res) => {
                 student: { email: 'student@edugrow.com', password: 'student123' }
             }
         })
-        
+
         console.log('\n✅ Demo accounts ready!')
         console.log('─────────────────────────────────────────')
         console.log('👨‍💼 Admin:   admin@edugrow.com   / admin123')
         console.log('👨‍🏫 Mentor:  mentor@edugrow.com  / mentor123')
         console.log('👨‍🎓 Student: student@edugrow.com / student123')
         console.log('─────────────────────────────────────────\n')
-        
+
     } catch (error) {
         console.error('❌ Reset failed:', error)
         res.status(500).json({
@@ -188,12 +186,12 @@ router.post('/reset-demo-data', async (req, res) => {
 router.get('/db-status', async (req, res) => {
     try {
         await sequelize.authenticate()
-        
+
         const userCount = await User.count()
         const adminCount = await User.count({ where: { role: 'admin' } })
         const mentorCount = await User.count({ where: { role: 'mentor' } })
         const studentCount = await User.count({ where: { role: 'student' } })
-        
+
         res.json({
             success: true,
             database: 'Connected',
